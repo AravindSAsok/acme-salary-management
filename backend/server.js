@@ -1,5 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("node:path");
+const fs = require("node:fs");
+
 const {
   getEmployees,
   updateSalary,
@@ -44,7 +47,25 @@ app.get("/api/salary-summary", (req, res) => {
   res.json(summary);
 });
 
-const PORT = 3001;
+const frontendDist = path.join(__dirname, "../frontend/dist");
+
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+
+  app.use((req, res, next) => {
+    if (
+      req.method === "GET" &&
+      !req.path.startsWith("/api") &&
+      fs.existsSync(path.join(frontendDist, "index.html"))
+    ) {
+      return res.sendFile(path.join(frontendDist, "index.html"));
+    }
+
+    next();
+  });
+}
+
+const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

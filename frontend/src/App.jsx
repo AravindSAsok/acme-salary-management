@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:3001/api";
+const API = "/api";
 
 function App() {
   const [employees, setEmployees] = useState([]);
