@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "packageManager": "yarn@4.9.1",
+  "packageManager": "yarn@1.22.22",
   "scripts": {
   "start": "node server.js",
   "dev": "nodemon server.js",
