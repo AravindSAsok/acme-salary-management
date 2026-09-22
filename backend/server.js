@@ -1,75 +1,41 @@
 const express = require("express");
 const cors = require("cors");
-const Database = require("better-sqlite3");
+const {
+  getEmployees,
+  updateSalary,
+  getSalarySummary,
+} = require("./db");
 
 const app = express();
-const db = new Database("acme.db");
 
 app.use(cors());
 app.use(express.json());
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS employees (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    country TEXT NOT NULL,
-    department TEXT NOT NULL,
-    salary REAL NOT NULL
-  )
-`);
-
 app.get("/api/employees", (req, res) => {
-  const employees = db
-    .prepare("SELECT * FROM employees ORDER BY id")
-    .all();
+  const employees = getEmployees();
 
   res.json(employees);
 });
 
 app.put("/api/employees/:id/salary", (req, res) => {
   const salary = Number(req.body.salary);
+  const result = updateSalary(req.params.id, salary);
 
-  if (!Number.isFinite(salary) || salary < 0) {
-    return res.status(400).json({ error: "Invalid salary" });
+  if (result.error === "Invalid salary") {
+    return res.status(400).json(result);
   }
 
-  const result = db
-    .prepare("UPDATE employees SET salary = ? WHERE id = ?")
-    .run(salary, req.params.id);
-
-  if (result.changes === 0) {
-    return res.status(404).json({ error: "Employee not found" });
+  if (result.error === "Employee not found") {
+    return res.status(404).json(result);
   }
 
-  res.json({ message: "Salary updated" });
+  res.json(result);
 });
 
 app.get("/api/salary-summary", (req, res) => {
-  const overall = db
-    .prepare(`
-      SELECT
-        COUNT(*) AS employees,
-        ROUND(AVG(salary), 2) AS averageSalary,
-        MIN(salary) AS minimumSalary,
-        MAX(salary) AS maximumSalary
-      FROM employees
-    `)
-    .get();
+  const summary = getSalarySummary();
 
-  const byCountry = db
-    .prepare(`
-      SELECT
-        country,
-        COUNT(*) AS employees,
-        ROUND(AVG(salary), 2) AS averageSalary
-      FROM employees
-      GROUP BY country
-      ORDER BY country
-    `)
-    .all();
-
-  res.json({ overall, byCountry });
+  res.json(summary);
 });
 
 const PORT = 3001;
