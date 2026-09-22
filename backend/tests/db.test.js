@@ -8,17 +8,49 @@ const {
 } = require("../db");
 
 test("database contains 10,000 employees", () => {
-  const employees = getEmployees();
+  const result = getEmployees({ page: 1, limit: 25 });
 
-  assert.equal(employees.length, 10000);
+  assert.equal(result.pagination.total, 10000);
+  assert.equal(result.employees.length, 25);
 });
 
-test("employees contain required salary data", () => {
-  const employees = getEmployees();
+test("employee records contain required data", () => {
+  const result = getEmployees({ page: 1, limit: 1 });
+  const employee = result.employees[0];
 
-  assert.ok(employees[0].salary >= 0);
-  assert.ok(employees[0].name);
-  assert.ok(employees[0].email);
+  assert.ok(employee);
+  assert.ok(employee.salary >= 0);
+  assert.ok(employee.name);
+  assert.ok(employee.email);
+  assert.ok(employee.country);
+  assert.ok(employee.department);
+});
+
+test("employee pagination returns the requested page size", () => {
+  const result = getEmployees({
+    page: 2,
+    limit: 25,
+  });
+
+  assert.equal(result.employees.length, 25);
+  assert.equal(result.pagination.page, 2);
+  assert.equal(result.pagination.limit, 25);
+  assert.equal(result.pagination.totalPages, 400);
+});
+
+test("employee search filters results", () => {
+  const result = getEmployees({
+    search: "Employee 1",
+    page: 1,
+    limit: 25,
+  });
+
+  assert.ok(result.pagination.total > 0);
+  assert.ok(
+    result.employees.every((employee) =>
+      employee.name.toLowerCase().includes("employee 1")
+    )
+  );
 });
 
 test("salary summary returns correct employee count", () => {
