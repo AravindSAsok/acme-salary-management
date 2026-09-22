@@ -13,32 +13,52 @@ db.exec(`
   )
 `);
 
-const countries = ["India", "USA", "UK", "Germany", "Canada", "Australia"];
-const departments = ["Engineering", "HR", "Finance", "Sales", "Marketing"];
+const countries = [
+  "India",
+  "USA",
+  "UK",
+  "Germany",
+  "Canada",
+  "Australia",
+];
 
-const existing = db
-  .prepare("SELECT COUNT(*) AS count FROM employees")
-  .get().count;
+const departments = [
+  "Engineering",
+  "HR",
+  "Finance",
+  "Sales",
+  "Marketing",
+];
 
-if (existing > 0) {
-  console.log(`Database already contains ${existing} employees.`);
-  db.close();
-  process.exit(0);
-}
+const employeeCount = 10000;
 
 const insert = db.prepare(`
   INSERT INTO employees
-  (name, email, country, department, salary)
-  VALUES (?, ?, ?, ?, ?)
+  (id, name, email, country, department, salary)
+  VALUES (?, ?, ?, ?, ?, ?)
 `);
 
 const seed = db.transaction(() => {
-  for (let i = 1; i <= 10000; i++) {
+  const existing = db
+    .prepare("SELECT COUNT(*) AS count FROM employees")
+    .get().count;
+
+  if (existing > 0) {
+    console.log(
+      `Database already contains ${existing} employees. Skipping seed.`
+    );
+    return;
+  }
+
+  for (let i = 1; i <= employeeCount; i++) {
     const country = countries[(i - 1) % countries.length];
     const department = departments[(i - 1) % departments.length];
+
+    // Generates salaries between $30,000 and $149,999.
     const salary = 30000 + ((i * 137) % 120000);
 
     insert.run(
+      i,
       `Employee ${i}`,
       `employee${i}@acme.com`,
       country,
@@ -46,10 +66,12 @@ const seed = db.transaction(() => {
       salary
     );
   }
+
+  console.log(`Seeded ${employeeCount} employees.`);
 });
 
-seed();
-
-console.log("Seeded 10,000 employees.");
-
-db.close();
+try {
+  seed();
+} finally {
+  db.close();
+}

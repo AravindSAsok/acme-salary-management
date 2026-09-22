@@ -13,10 +13,58 @@ db.exec(`
   )
 `);
 
-function getEmployees() {
-  return db
-    .prepare("SELECT * FROM employees ORDER BY id")
-    .all();
+function getEmployees({ search = "", page = 1, limit = 25 } = {}) {
+  const normalizedPage = Math.max(1, Number(page) || 1);
+  const normalizedLimit = Math.min(
+    100,
+    Math.max(1, Number(limit) || 25)
+  );
+  const offset = (normalizedPage - 1) * normalizedLimit;
+
+  const searchTerm = `%${search.trim()}%`;
+
+  const countResult = db
+    .prepare(`
+      SELECT COUNT(*) AS total
+      FROM employees
+      WHERE
+        name LIKE ?
+        OR email LIKE ?
+        OR country LIKE ?
+        OR department LIKE ?
+    `)
+    .get(searchTerm, searchTerm, searchTerm, searchTerm);
+
+  const employees = db
+    .prepare(`
+      SELECT *
+      FROM employees
+      WHERE
+        name LIKE ?
+        OR email LIKE ?
+        OR country LIKE ?
+        OR department LIKE ?
+      ORDER BY id
+      LIMIT ? OFFSET ?
+    `)
+    .all(
+      searchTerm,
+      searchTerm,
+      searchTerm,
+      searchTerm,
+      normalizedLimit,
+      offset
+    );
+
+  return {
+    employees,
+    pagination: {
+      page: normalizedPage,
+      limit: normalizedLimit,
+      total: countResult.total,
+      totalPages: Math.ceil(countResult.total / normalizedLimit),
+    },
+  };
 }
 
 function updateSalary(id, salary) {

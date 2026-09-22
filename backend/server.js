@@ -12,9 +12,15 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/employees", (req, res) => {
-  const employees = getEmployees();
+  const { search = "", page = 1, limit = 25 } = req.query;
 
-  res.json(employees);
+  const result = getEmployees({
+    search,
+    page,
+    limit,
+  });
+
+  res.json(result);
 });
 
 app.put("/api/employees/:id/salary", (req, res) => {
